@@ -1,0 +1,12 @@
+streamlit
+opencv-python
+PyMuPDF
+requests
+python-dotenv
+google-generativeai
+streamlit
+pymupdf
+opencv-python
+pillow
+python-dotenv
+requests
