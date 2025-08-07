@@ -1,10 +1,10 @@
 import streamlit as st
 import fitz  # PyMuPDF
-import cv2
 import numpy as np
 from azure_ocr import extract_text_from_image
 from gemini_diagram import analyze_diagram
 from PIL import Image
+import io
 
 st.title("📝 Medical Answer Sheet Evaluator")
 
@@ -20,10 +20,10 @@ if uploaded_file:
         # Show page image
         st.image(img, caption="Answer Sheet Image")
 
-        # Convert to OpenCV image
-        img_cv = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-        is_success, buffer = cv2.imencode(".jpg", img_cv)
-        byte_img = buffer.tobytes()
+        # Convert PIL image to bytes (JPEG)
+        buffer = io.BytesIO()
+        img.save(buffer, format="JPEG")
+        byte_img = buffer.getvalue()
 
         with st.spinner("Extracting handwritten text..."):
             text = extract_text_from_image(byte_img)
