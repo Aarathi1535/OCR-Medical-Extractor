@@ -4,19 +4,21 @@ from mistralai import Mistral
 from dotenv import load_dotenv
 
 load_dotenv()
+
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 client = Mistral(api_key=MISTRAL_API_KEY)
 
 def extract_text_from_image(image_data: bytes) -> str:
-    # Convert image bytes to base64
+    # Encode image to base64
     b64_image = base64.b64encode(image_data).decode()
 
-    # Correct payload for Mistral OCR
+    # Correct Mistral OCR payload
     document = {
-        "type": "document_base64",
-        "document_base64": b64_image
+        "type": "base64",
+        "base64": b64_image
     }
 
+    # Call Mistral OCR
     ocr_response = client.ocr.process(
         model="mistral-ocr-latest",
         document=document,
@@ -27,8 +29,6 @@ def extract_text_from_image(image_data: bytes) -> str:
     if hasattr(ocr_response, "pages"):
         for page in ocr_response.pages:
             extracted_text += page.get("text", "") + "\n"
-    elif isinstance(ocr_response, dict) and "text" in ocr_response:
-        extracted_text = ocr_response["text"]
     else:
         extracted_text = str(ocr_response)
 
