@@ -5,17 +5,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-
 client = Mistral(api_key=MISTRAL_API_KEY)
 
-def extract_text_from_image(image_bytes):
-    """
-    Use Mistral OCR to extract text from raw image bytes (e.g., JPEG).
-    """
-    b64 = base64.b64encode(image_bytes).decode()
+def extract_text_from_image(image_data: bytes) -> str:
+    # Convert image bytes to base64
+    b64_image = base64.b64encode(image_data).decode()
+
+    # Correct payload for Mistral OCR
     document = {
-        "type": "document_url",
-        "document_url": f"data:image/jpeg;base64,{b64}"
+        "type": "document_base64",
+        "document_base64": b64_image
     }
 
     ocr_response = client.ocr.process(
@@ -24,16 +23,13 @@ def extract_text_from_image(image_bytes):
         include_image_base64=False
     )
 
-    # The OCR response includes pages structured in markdown or text
-    # You can adjust based on actual response format
-    texts = []
+    extracted_text = ""
     if hasattr(ocr_response, "pages"):
-        # Example: iterates pages and collects text
         for page in ocr_response.pages:
-            texts.append(page.get("text", ""))
+            extracted_text += page.get("text", "") + "\n"
     elif isinstance(ocr_response, dict) and "text" in ocr_response:
-        texts.append(ocr_response["text"])
+        extracted_text = ocr_response["text"]
     else:
-        texts.append(str(ocr_response))
+        extracted_text = str(ocr_response)
 
-    return "\n\n".join(texts)
+    return extracted_text.strip()
