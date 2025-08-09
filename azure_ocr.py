@@ -8,7 +8,7 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 client = Mistral(api_key=MISTRAL_API_KEY)
 
-def extract_text_from_image_bytes(image_bytes):
+def extract_text_from_image(image_bytes):
     """
     Use Mistral OCR to extract text from raw image bytes (e.g., JPEG).
     """
