@@ -1,34 +1,39 @@
-import requests
-import time
 import os
+import base64
+from mistralai import Mistral
 from dotenv import load_dotenv
 
 load_dotenv()
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
-AZURE_ENDPOINT = os.getenv("AZURE_ENDPOINT")
-AZURE_KEY = os.getenv("AZURE_KEY")
+client = Mistral(api_key=MISTRAL_API_KEY)
 
-def extract_text_from_image(image_data):
-    ocr_url = f"{AZURE_ENDPOINT}/vision/v3.2/read/analyze"
-    headers = {
-        'Ocp-Apim-Subscription-Key': AZURE_KEY,
-        'Content-Type': 'application/octet-stream'
+def extract_text_from_image_bytes(image_bytes):
+    """
+    Use Mistral OCR to extract text from raw image bytes (e.g., JPEG).
+    """
+    b64 = base64.b64encode(image_bytes).decode()
+    document = {
+        "type": "document_url",
+        "document_url": f"data:image/jpeg;base64,{b64}"
     }
 
-    response = requests.post(ocr_url, headers=headers, data=image_data)
-    response.raise_for_status()
-    operation_url = response.headers["Operation-Location"]
+    ocr_response = client.ocr.process(
+        model="mistral-ocr-latest",
+        document=document,
+        include_image_base64=False
+    )
 
-    # Poll for result
-    while True:
-        result = requests.get(operation_url, headers={'Ocp-Apim-Subscription-Key': AZURE_KEY}).json()
-        if "status" in result and result["status"] in ["succeeded", "failed"]:
-            break
-        time.sleep(1)
+    # The OCR response includes pages structured in markdown or text
+    # You can adjust based on actual response format
+    texts = []
+    if hasattr(ocr_response, "pages"):
+        # Example: iterates pages and collects text
+        for page in ocr_response.pages:
+            texts.append(page.get("text", ""))
+    elif isinstance(ocr_response, dict) and "text" in ocr_response:
+        texts.append(ocr_response["text"])
+    else:
+        texts.append(str(ocr_response))
 
-    extracted_text = ""
-    if result["status"] == "succeeded":
-        for read_result in result["analyzeResult"]["readResults"]:
-            for line in read_result["lines"]:
-                extracted_text += line["text"] + "\n"
-    return extracted_text
+    return "\n\n".join(texts)
